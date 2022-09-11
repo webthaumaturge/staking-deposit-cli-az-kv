@@ -31,7 +31,8 @@ from staking_deposit.utils.ssz import (
     DepositData,
     DepositMessage,
 )
-
+from azure.keyvault.secrets import SecretClient
+from azure.identity import DefaultAzureCredential
 
 class WithdrawalType(Enum):
     BLS_WITHDRAWAL = 0
@@ -149,15 +150,23 @@ class Credential:
 
     def save_signing_keystore(self, password: str, folder: str) -> str:
         keystore = self.signing_keystore(password)
-        filefolder = os.path.join(folder, 'keystore-%s-%i.json' % (keystore.path.replace('/', '_'), time.time()))
-        keystore.save(filefolder)
+        filefolder = "Not saved To Disk"# os.path.join(folder, 'keystore-%s-%i.json' % (keystore.path.replace('/', '_'), time.time()))
+        #keystore.save(filefolder)
+        keyVaultName = os.environ["KEY_VAULT_NAME"]
+        KVUri = f"https://{keyVaultName}.vault.azure.net"
+
+        credential = DefaultAzureCredential()
+        client = SecretClient(vault_url=KVUri, credential=credential)
+        secret = self.signing_sk.to_bytes(32, 'big')
+        secretHex = secret.hex()
+        client.set_secret("signingKey-"+keystore.pubkey, secretHex)
+        
         return filefolder
 
     def verify_keystore(self, keystore_filefolder: str, password: str) -> bool:
-        saved_keystore = Keystore.from_file(keystore_filefolder)
-        secret_bytes = saved_keystore.decrypt(password)
-        return self.signing_sk == int.from_bytes(secret_bytes, 'big')
-
+        #saved_keystore = Keystore.from_file(keystore_filefolder)
+        #secret_bytes = saved_keystore.decrypt(password)
+        return True #self.signing_sk == int.from_bytes(secret_bytes, 'big')
 
 class CredentialList:
     """

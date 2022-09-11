@@ -4,6 +4,7 @@ validator_keys
 build/
 dist/
 venv/
+.venv/
 *.pytest_cache
 *.hypothesis
 *.mypy_cache
